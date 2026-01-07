@@ -3,6 +3,7 @@ class PowerUpManager {
     constructor(game) {
         this.game = game;
         this.activePowerUps = [];
+        this.activeIntervals = []; // Track intervals for cleanup
         this.powerUpTypes = {
             paddleGrow: {
                 name: 'PADDLE GROW',
@@ -159,9 +160,9 @@ class PowerUpManager {
         powerUp.collected = true;
         const type = this.powerUpTypes[powerUp.type];
         
-        // Determine which player collected it (based on ball direction)
-        const ball = this.game.balls[0];
-        const player = ball.velocityX > 0 ? 'p2' : 'p1';
+        // Determine which player collected it (based on power-up position)
+        const centerX = this.game.canvas.width / 2;
+        const player = powerUp.x < centerX ? 'p1' : 'p2';
         
         // Apply effect
         type.effect(player);
@@ -236,6 +237,8 @@ class PowerUpManager {
                     indicator.classList.add('hidden');
                 }
             }, 100);
+            // Store interval for cleanup
+            this.activeIntervals.push(interval);
         } else {
             // Instant effect, hide after 2 seconds
             setTimeout(() => {
@@ -275,6 +278,10 @@ class PowerUpManager {
     reset() {
         this.activePowerUps = [];
         this.spawnTimer = 0;
+        
+        // Clear all active intervals to prevent memory leaks
+        this.activeIntervals.forEach(interval => clearInterval(interval));
+        this.activeIntervals = [];
         
         // Reset all effects
         if (this.game.paddle1) {

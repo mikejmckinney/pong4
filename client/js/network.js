@@ -11,6 +11,7 @@ class NetworkManager {
         this.reconnectDelay = 2000;
         this.latency = 0;
         this.lastPingTime = 0;
+        this.connectionPending = false; // Prevent multiple simultaneous connection attempts
         
         // State interpolation for smooth gameplay
         this.remoteState = {
@@ -62,11 +63,16 @@ class NetworkManager {
     onClose() {
         console.log('Disconnected from server');
         this.connected = false;
+        this.connectionPending = false;
         clearInterval(this.pingInterval);
         
         // Attempt reconnection if in a game
         if (this.roomCode && this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnect();
+        } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            // Max attempts reached, clear room code and notify user
+            this.roomCode = null;
+            Utils.showToast('Failed to reconnect. Please try creating/joining a new room.', 5000);
         }
     }
 
@@ -130,10 +136,16 @@ class NetworkManager {
 
     // Create a new room
     createRoom(mode = 'classic') {
+        if (this.connectionPending) {
+            return; // Prevent multiple simultaneous attempts
+        }
+        
         if (!this.connected) {
+            this.connectionPending = true;
             this.connect();
             // Wait for connection, then create room
             setTimeout(() => {
+                this.connectionPending = false;
                 if (this.connected) {
                     this.createRoom(mode);
                 }
@@ -150,9 +162,15 @@ class NetworkManager {
 
     // Join an existing room
     joinRoom(roomCode) {
+        if (this.connectionPending) {
+            return; // Prevent multiple simultaneous attempts
+        }
+        
         if (!this.connected) {
+            this.connectionPending = true;
             this.connect();
             setTimeout(() => {
+                this.connectionPending = false;
                 if (this.connected) {
                     this.joinRoom(roomCode);
                 }
@@ -283,9 +301,6 @@ class NetworkManager {
         
         // Update opponent paddle based on input
         const paddle = message.playerId === this.playerId ? game.paddle1 : game.paddle2;
-        
-        // Apply client-side prediction compensation
-        const latencyCompensation = this.latency / 2;
         paddle.targetY = message.paddleY;
     }
 

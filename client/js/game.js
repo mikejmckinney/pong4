@@ -37,6 +37,7 @@ class Game {
         this.timeLimit = 90; // For time attack mode
         this.countdown = 0; // Countdown before game starts
         this.countdownTimer = 0;
+        this.countdownDuration = 3; // Consistent countdown duration
         
         // Controls
         this.keys = {};
@@ -80,7 +81,6 @@ class Game {
     }
 
     setupCanvas() {
-        const container = this.canvas.parentElement;
         const maxWidth = window.innerWidth;
         const maxHeight = window.innerHeight - 100; // Leave space for HUD
         
@@ -245,7 +245,7 @@ class Game {
         this.multiplayer = isMultiplayer;
         this.localMultiplayer = isLocal;
         this.state = 'playing';
-        this.countdown = 3; // Add countdown before game starts
+        this.countdown = this.countdownDuration; // Use consistent countdown duration
         this.countdownTimer = 0;
         
         // Reset game
@@ -316,7 +316,6 @@ class Game {
                 
                 // Start ball movement when countdown reaches 0
                 if (this.countdown === 0) {
-                    const ballSpeed = this.ball.speed;
                     this.balls.forEach(ball => {
                         ball.velocityX = ball.speed * (Math.random() > 0.5 ? 1 : -1);
                         ball.velocityY = Utils.random(-ball.speed / 2, ball.speed / 2);
@@ -373,9 +372,9 @@ class Game {
         document.getElementById('score-p1').textContent = this.player1.score;
         document.getElementById('score-p2').textContent = this.player2.score;
         
-        // Check win condition
-        if (this.mode !== 'timeattack') {
-            const winScore = this.mode === 'survival' ? 1 : 11;
+        // Check win condition (not for survival mode - it continues until player loses)
+        if (this.mode !== 'timeattack' && this.mode !== 'survival') {
+            const winScore = 11;
             if (this.player1.score >= winScore || this.player2.score >= winScore) {
                 this.endGame();
             }
@@ -470,9 +469,13 @@ class Game {
             }
         }
         
-        // Survival mode: increase speed over time
-        if (this.mode === 'survival' && this.gameTime % 5000 < 16) {
-            ball.speed *= 1.01;
+        // Survival mode: increase speed over time (every 5 seconds)
+        if (this.mode === 'survival') {
+            const fiveSecondMark = Math.floor(this.gameTime / 5000);
+            if (fiveSecondMark > (this.lastSpeedIncrease || 0)) {
+                this.lastSpeedIncrease = fiveSecondMark;
+                ball.speed *= 1.01;
+            }
         }
     }
 
@@ -503,8 +506,8 @@ class Game {
     resetBall(ball) {
         ball.x = this.canvas.width / 2;
         ball.y = this.canvas.height / 2;
-        // Reset countdown for next point
-        this.countdown = 2;
+        // Reset countdown for next point (use consistent duration)
+        this.countdown = this.countdownDuration;
         this.countdownTimer = 0;
         ball.velocityX = 0;
         ball.velocityY = 0;

@@ -12,7 +12,7 @@ const wss = new WebSocket.Server({ server });
 
 // Configuration
 const PORT = process.env.PORT || 3000;
-const MAX_SCORE_PER_MINUTE = 5; // Rate limiting
+const MAX_SUBMISSIONS_PER_MINUTE = 5; // Rate limiting: max score submissions per minute
 const VALID_GAME_MODES = ['classic', 'arcade', 'timeattack', 'chaos', 'survival'];
 const LEADERBOARD_MODES = ['classic', 'arcade'];
 
@@ -42,6 +42,7 @@ function rateLimitMiddleware(req, res, next) {
         return res.status(429).json({ error: 'Too many requests. Please slow down.' });
     }
     
+    // Push current timestamp to the filtered array and update the map
     recentRequests.push(now);
     rateLimits.set(ip, recentRequests);
     
@@ -206,6 +207,13 @@ function handleCreateRoom(ws, data) {
 
 function handleJoinRoom(ws, data) {
     const roomCode = data.roomCode.toUpperCase();
+    
+    // Validate room code format (6 uppercase alphanumeric characters)
+    if (!/^[A-Z0-9]{6}$/.test(roomCode)) {
+        ws.send(JSON.stringify({ type: 'error', error: 'Invalid room code format' }));
+        return;
+    }
+    
     const room = rooms.get(roomCode);
     
     if (!room) {
@@ -373,12 +381,18 @@ app.post('/api/leaderboard', (req, res) => {
         const submissions = submissionRates.get(ipHash);
         const recentSubmissions = submissions.filter(time => now - time < 60000);
         
-        if (recentSubmissions.length >= MAX_SCORE_PER_MINUTE) {
+        if (recentSubmissions.length >= MAX_SUBMISSIONS_PER_MINUTE) {
             return res.status(429).json({ error: 'Rate limit exceeded. Please wait before submitting again.' });
         }
         
         recentSubmissions.push(now);
         submissionRates.set(ipHash, recentSubmissions);
+        
+        // Validate and sanitize player name
+        const sanitizedName = name.trim();
+        if (!sanitizedName || sanitizedName.length === 0 || /^\s*$/.test(sanitizedName)) {
+            return res.status(400).json({ error: 'Invalid player name' });
+        }
         
         // Anti-cheat: Basic score validation
         const verified = validateScore(score, mode);
@@ -390,7 +404,7 @@ app.post('/api/leaderboard', (req, res) => {
         `);
         
         const result = stmt.run(
-            name.substring(0, 20),
+            sanitizedName.substring(0, 20),
             score,
             mode,
             timestamp || Date.now(),

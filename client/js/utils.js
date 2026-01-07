@@ -154,6 +154,4 @@ const Utils = {
             toast.classList.add('hidden');
         }, duration);
     }
-        }
-    }
 };

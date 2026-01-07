@@ -44,11 +44,6 @@
             if (!audioManager.initialized) {
                 audioManager.init();
                 console.log('Audio initialized');
-                
-                // Remove listeners after first interaction
-                events.forEach(event => {
-                    document.removeEventListener(event, initAudio);
-                });
             }
         };
         
