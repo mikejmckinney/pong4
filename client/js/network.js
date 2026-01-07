@@ -321,26 +321,42 @@ class NetworkManager {
             }
             
             if (state0 && state1) {
+                const s0 = state0.state;
+                const s1 = state1.state;
+                // Ensure we have valid state objects before accessing nested properties
+                if (!s0 || !s1) {
+                    return;
+                }
+
                 // Interpolate
                 const t = (renderTime - state0.timestamp) / (state1.timestamp - state0.timestamp);
                 
-                // Apply interpolated state to game
-                if (game.balls[0]) {
-                    game.balls[0].x = Utils.lerp(state0.state.ball.x, state1.state.ball.x, t);
-                    game.balls[0].y = Utils.lerp(state0.state.ball.y, state1.state.ball.y, t);
+                // Apply interpolated state to game (ball)
+                const ball0 = s0.ball;
+                const ball1 = s1.ball;
+                if (game.balls[0] && ball0 && ball1) {
+                    game.balls[0].x = Utils.lerp(ball0.x, ball1.x, t);
+                    game.balls[0].y = Utils.lerp(ball0.y, ball1.y, t);
                 }
                 
                 // Update opponent paddle (player 1 if we're player 2)
                 const opponentPaddle = this.playerId === 'p1' ? game.paddle2 : game.paddle1;
-                opponentPaddle.y = Utils.lerp(
-                    state0.state.opponentPaddle.y,
-                    state1.state.opponentPaddle.y,
-                    t
-                );
+                const opponentPaddle0 = s0.opponentPaddle;
+                const opponentPaddle1 = s1.opponentPaddle;
+                if (opponentPaddle && opponentPaddle0 && opponentPaddle1) {
+                    opponentPaddle.y = Utils.lerp(
+                        opponentPaddle0.y,
+                        opponentPaddle1.y,
+                        t
+                    );
+                }
                 
                 // Update scores
-                game.player1.score = state1.state.score.p1;
-                game.player2.score = state1.state.score.p2;
+                const score1 = s1.score;
+                if (score1 && game.player1 && game.player2) {
+                    game.player1.score = score1.p1;
+                    game.player2.score = score1.p2;
+                }
                 
                 // Remove old states
                 this.stateBuffer = this.stateBuffer.filter(s => s.timestamp >= renderTime - 1000);
