@@ -434,7 +434,7 @@ app.get('/api/leaderboard/:mode', (req, res) => {
 // Simple score validation (can be enhanced)
 function validateScore(score, mode) {
     // Basic checks - can be made more sophisticated
-    if (score > 50) return false; // Suspiciously high
+    if (score > 100) return false; // Suspiciously high
     if (score < 0) return false; // Invalid
     return true;
 }
