@@ -24,11 +24,47 @@ initDatabase();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../client')));
 
+// Rate limiting middleware
+const rateLimits = new Map();
+
+function rateLimitMiddleware(req, res, next) {
+    const ip = req.ip || req.connection.remoteAddress;
+    const now = Date.now();
+    
+    if (!rateLimits.has(ip)) {
+        rateLimits.set(ip, []);
+    }
+    
+    const requests = rateLimits.get(ip);
+    const recentRequests = requests.filter(time => now - time < 60000); // Last minute
+    
+    if (recentRequests.length >= 60) { // 60 requests per minute
+        return res.status(429).json({ error: 'Too many requests. Please slow down.' });
+    }
+    
+    recentRequests.push(now);
+    rateLimits.set(ip, recentRequests);
+    
+    // Clean up old entries periodically
+    if (Math.random() < 0.01) {
+        for (const [key, value] of rateLimits.entries()) {
+            if (value.every(time => now - time > 300000)) { // 5 minutes old
+                rateLimits.delete(key);
+            }
+        }
+    }
+    
+    next();
+}
+
+// Apply rate limiting to API routes
+app.use('/api', rateLimitMiddleware);
+
 // In-memory game rooms
 const rooms = new Map();
 const playerRooms = new Map();
 
-// Rate limiting map
+// Rate limiting map for score submissions
 const submissionRates = new Map();
 
 // Initialize database schema
@@ -408,8 +444,8 @@ function hashIP(ip) {
     return crypto.createHash('sha256').update(ip).digest('hex').substring(0, 16);
 }
 
-// Serve index.html for all routes (SPA)
-app.get('*', (req, res) => {
+// Serve index.html for all routes (SPA) - with rate limiting
+app.get('*', rateLimitMiddleware, (req, res) => {
     res.sendFile(path.join(__dirname, '../client/index.html'));
 });
 
