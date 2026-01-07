@@ -186,10 +186,10 @@ class PowerUpManager {
             case 'paddleGrow':
             case 'paddleShrink':
                 // Reset paddle size
-                if (this.game.paddle1.originalHeight) {
+                if (this.game.paddle1.originalHeight !== undefined) {
                     this.game.paddle1.height = this.game.paddle1.originalHeight;
                 }
-                if (this.game.paddle2.originalHeight) {
+                if (this.game.paddle2.originalHeight !== undefined) {
                     this.game.paddle2.height = this.game.paddle2.originalHeight;
                 }
                 break;
