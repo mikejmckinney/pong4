@@ -357,7 +357,7 @@ class NetworkManager {
 
     showError(message) {
         console.error('Network error:', message);
-        alert(`Network Error: ${message}`);
+        Utils.showToast(`Network Error: ${message}`, 5000);
     }
 
     disconnect() {

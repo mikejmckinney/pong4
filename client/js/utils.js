@@ -139,5 +139,21 @@ const Utils = {
             console.error('Error loading from localStorage:', error);
             return defaultValue;
         }
+    },
+
+    // Show toast notification
+    showToast(message, duration = 3000) {
+        const toast = document.getElementById('toast');
+        if (!toast) return;
+        
+        toast.textContent = message;
+        toast.classList.remove('hidden');
+        
+        // Auto-hide after duration
+        setTimeout(() => {
+            toast.classList.add('hidden');
+        }, duration);
+    }
+        }
     }
 };

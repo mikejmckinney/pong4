@@ -199,7 +199,7 @@ class UIManager {
             if (roomCode.length === 6) {
                 networkManager.joinRoom(roomCode);
             } else {
-                alert('Please enter a valid 6-character room code');
+                Utils.showToast('Please enter a valid 6-character room code');
             }
         });
         

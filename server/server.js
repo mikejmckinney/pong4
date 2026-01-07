@@ -4,6 +4,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 const Database = require('better-sqlite3');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
@@ -12,6 +13,8 @@ const wss = new WebSocket.Server({ server });
 // Configuration
 const PORT = process.env.PORT || 3000;
 const MAX_SCORE_PER_MINUTE = 5; // Rate limiting
+const VALID_GAME_MODES = ['classic', 'arcade', 'timeattack', 'chaos', 'survival'];
+const LEADERBOARD_MODES = ['classic', 'arcade'];
 
 // Initialize database
 const db = new Database('./pong.db');
@@ -301,7 +304,7 @@ function broadcastToRoom(roomCode, message, excludePlayerId = null) {
 }
 
 function generatePlayerId() {
-    return 'p' + Math.random().toString(36).substr(2, 9);
+    return 'p' + Math.random().toString(36).substring(2, 11);
 }
 
 // REST API for leaderboard
@@ -318,7 +321,7 @@ app.post('/api/leaderboard', (req, res) => {
             return res.status(400).json({ error: 'Invalid score' });
         }
         
-        if (!['classic', 'arcade'].includes(mode)) {
+        if (!LEADERBOARD_MODES.includes(mode)) {
             return res.status(400).json({ error: 'Invalid mode' });
         }
         
@@ -371,7 +374,7 @@ app.get('/api/leaderboard/:mode', (req, res) => {
     try {
         const mode = req.params.mode;
         
-        if (!['classic', 'arcade'].includes(mode)) {
+        if (!LEADERBOARD_MODES.includes(mode)) {
             return res.status(400).json({ error: 'Invalid mode' });
         }
         
@@ -402,7 +405,6 @@ function validateScore(score, mode) {
 
 // Hash IP for privacy
 function hashIP(ip) {
-    const crypto = require('crypto');
     return crypto.createHash('sha256').update(ip).digest('hex').substring(0, 16);
 }
 
