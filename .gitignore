@@ -10,3 +10,5 @@ dist/
 *~
 .npm
 package-lock.json
+pong.db
+*.db
