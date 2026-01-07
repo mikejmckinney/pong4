@@ -59,6 +59,11 @@ body, html {
     opacity: 0;
 }
 
+/* General hidden class for any element */
+.hidden {
+    display: none !important;
+}
+
 /* Loading Screen */
 #loading-screen {
     background: var(--darker-bg);

@@ -35,6 +35,8 @@ class Game {
         this.lastTime = 0;
         this.gameTime = 0;
         this.timeLimit = 90; // For time attack mode
+        this.countdown = 0; // Countdown before game starts
+        this.countdownTimer = 0;
         
         // Controls
         this.keys = {};
@@ -243,6 +245,8 @@ class Game {
         this.multiplayer = isMultiplayer;
         this.localMultiplayer = isLocal;
         this.state = 'playing';
+        this.countdown = 3; // Add countdown before game starts
+        this.countdownTimer = 0;
         
         // Reset game
         this.player1.score = 0;
@@ -251,6 +255,10 @@ class Game {
         
         this.initGameObjects();
         this.powerUpManager.reset();
+        
+        // Freeze ball during countdown
+        this.ball.velocityX = 0;
+        this.ball.velocityY = 0;
         
         // Update UI
         document.getElementById('game-mode-label').textContent = mode.toUpperCase();
@@ -269,8 +277,8 @@ class Game {
                     y: this.canvas.height / 2,
                     radius: this.ball.radius,
                     speed: this.ball.speed,
-                    velocityX: Utils.random(-1, 1) > 0 ? this.ball.speed : -this.ball.speed,
-                    velocityY: Utils.random(-this.ball.speed / 2, this.ball.speed / 2),
+                    velocityX: 0, // Freeze during countdown
+                    velocityY: 0,
                     color: '#ff10f0'
                 };
                 this.balls.push(newBall);
@@ -297,6 +305,27 @@ class Game {
 
     update(deltaTime) {
         const dt = deltaTime / 16.67; // Normalize to 60fps
+        
+        // Handle countdown
+        if (this.countdown > 0) {
+            this.countdownTimer += deltaTime;
+            if (this.countdownTimer >= 1000) {
+                this.countdown--;
+                this.countdownTimer = 0;
+                audioManager.play('countdown');
+                
+                // Start ball movement when countdown reaches 0
+                if (this.countdown === 0) {
+                    const ballSpeed = this.ball.speed;
+                    this.balls.forEach(ball => {
+                        ball.velocityX = ball.speed * (Math.random() > 0.5 ? 1 : -1);
+                        ball.velocityY = Utils.random(-ball.speed / 2, ball.speed / 2);
+                    });
+                }
+            }
+            // Don't update game state during countdown
+            return;
+        }
         
         // Update game time
         this.gameTime += deltaTime;
@@ -474,8 +503,11 @@ class Game {
     resetBall(ball) {
         ball.x = this.canvas.width / 2;
         ball.y = this.canvas.height / 2;
-        ball.velocityX = ball.speed * (Math.random() > 0.5 ? 1 : -1);
-        ball.velocityY = Utils.random(-ball.speed / 2, ball.speed / 2);
+        // Reset countdown for next point
+        this.countdown = 2;
+        this.countdownTimer = 0;
+        ball.velocityX = 0;
+        ball.velocityY = 0;
     }
 
     draw() {
@@ -503,6 +535,19 @@ class Game {
         
         // Draw power-ups
         this.powerUpManager.draw(this.ctx);
+        
+        // Draw countdown if active
+        if (this.countdown > 0) {
+            this.ctx.save();
+            this.ctx.fillStyle = '#ffff00';
+            this.ctx.font = `${this.canvas.height * 0.2}px 'Courier New', monospace`;
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.shadowColor = '#ffff00';
+            this.ctx.shadowBlur = 30;
+            this.ctx.fillText(this.countdown, this.canvas.width / 2, this.canvas.height / 2);
+            this.ctx.restore();
+        }
     }
 
     drawCenterLine() {
